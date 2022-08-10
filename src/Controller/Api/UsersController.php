@@ -80,7 +80,7 @@ class UsersController extends AppController
                         'id' => $user['id'],
                         'sub' => $user['id'],
                         'iat' => time(),
-                        'exp' =>  time() + 120,
+                        'exp' =>  time() + 86400,
                     ], $key);
                 }
 
@@ -126,7 +126,7 @@ class UsersController extends AppController
 
 
     /**
-     * Edit method
+     * Edit user
      *
      * @param string|null $id User id.
      * @return void
@@ -154,7 +154,7 @@ class UsersController extends AppController
     }
 
     /**
-     * Delete method
+     * Delete user
      *
      * @param string|null $id User id.
      * @return void
@@ -178,7 +178,7 @@ class UsersController extends AppController
     }
 
     /**
-     * Logout method
+     * Logout user
      *
      * @return void
      */
@@ -193,7 +193,13 @@ class UsersController extends AppController
         $this->viewBuilder()->setOption('serialize', ['success', 'msg', 'errors']);
     }
 
-    public function clear()
+    /**
+     * Temporary method that clears users table
+     * @TODO remove before goes live
+     *
+     * @return void
+     */
+    public function clear() //TODO remove in production
     {
         $response = ['success' => false, 'msg' => "Something went wrong", 'errors' => ''];
         $default_user = [
@@ -228,8 +234,33 @@ class UsersController extends AppController
             }
         }
 
-        extract($response);
         $this->set(compact('response'));
-        $this->viewBuilder()->setOption('serialize', ['success', 'msg', 'errors']);
+        $this->viewBuilder()->setOption('serialize', 'response');
+    }
+
+    /**
+     * Method for changing password for current logged in user
+     *
+     * @return void
+     */
+    public function changePassword()
+    {
+        $response = ['success' => false, 'msg' => "Something went wrong", 'errors' => ''];
+        $userId = $this->Auth->user('id');
+        $data = [
+            'password' => $this->request->getData('password')
+        ];
+
+        $user = $this->Users->get($userId);
+        $this->Users->patchEntity($user, $data);
+
+        if ($this->Users->save($user)) {
+            $response = ['success' => true, 'msg' => "Password changed", 'errors' => ''];
+        } else {
+            $response['errors'] = $user->getErrors();
+        }
+
+        $this->set(compact('response'));
+        $this->viewBuilder()->setOption('serialize', 'response');
     }
 }
