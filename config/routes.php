@@ -75,6 +75,7 @@ return static function (RouteBuilder $routes) {
 
     $routes->scope('/api', function (RouteBuilder $builder) {
         $builder->setExtensions(['json']);
+
         //Users Controller
         $builder->connect("/login", ["controller" => "Users", "action" => "login", 'prefix' => 'Api']);
         $builder->connect("/registration", ["controller" => "Users", "action" => "registration", 'prefix' => 'Api']);
@@ -91,7 +92,11 @@ return static function (RouteBuilder $routes) {
             ->setPass(['id']);
         $builder->connect("/users/clear", ["controller" => "Users", "action" => "clear", 'prefix' => 'Api']); // TODO remove after finish testing
         $builder->connect("/forgot-password", ["controller" => "Users", "action" => "forgotPassword", 'prefix' => 'Api']);
+        $builder->connect("/forgot-password/{code}", ["controller" => "Users", "action" => "forgotPassword", 'prefix' => 'Api'])
+            ->setPatterns(['code' => '\d+'])
+            ->setPass(['code']);
         $builder->connect("/change-password", ["controller" => "Users", "action" => "changePassword", 'prefix' => 'Api']);
+
         // Documents Controller
         $builder->connect("/upload", ["controller" => "Documents", "action" => "handler", 'prefix' => 'Api']);
         $builder->connect("/files", ["controller" => "Documents", "action" => "fetch", 'prefix' => 'Api']);
@@ -104,7 +109,6 @@ return static function (RouteBuilder $routes) {
         $builder->connect("/files/download/{id}", ["controller" => "Documents", "action" => "decrypt", 'prefix' => 'Api'])
             ->setPatterns(['id' => '\d+'])
             ->setPass(['id']);
-
     });
 
     /*

@@ -3,27 +3,29 @@ declare(strict_types=1);
 
 namespace App\Model\Table;
 
+use App\Model\Entity\User;
 use Cake\ORM\Query;
 use Cake\ORM\RulesChecker;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
+use Exception;
 
 /**
  * Users Model
  *
- * @method \App\Model\Entity\User newEmptyEntity()
- * @method \App\Model\Entity\User newEntity(array $data, array $options = [])
- * @method \App\Model\Entity\User[] newEntities(array $data, array $options = [])
- * @method \App\Model\Entity\User get($primaryKey, $options = [])
- * @method \App\Model\Entity\User findOrCreate($search, ?callable $callback = null, $options = [])
- * @method \App\Model\Entity\User patchEntity(\Cake\Datasource\EntityInterface $entity, array $data, array $options = [])
- * @method \App\Model\Entity\User[] patchEntities(iterable $entities, array $data, array $options = [])
- * @method \App\Model\Entity\User|false save(\Cake\Datasource\EntityInterface $entity, $options = [])
- * @method \App\Model\Entity\User saveOrFail(\Cake\Datasource\EntityInterface $entity, $options = [])
- * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface|false saveMany(iterable $entities, $options = [])
- * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface saveManyOrFail(iterable $entities, $options = [])
- * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface|false deleteMany(iterable $entities, $options = [])
- * @method \App\Model\Entity\User[]|\Cake\Datasource\ResultSetInterface deleteManyOrFail(iterable $entities, $options = [])
+ * @method User newEmptyEntity()
+ * @method User newEntity(array $data, array $options = [])
+ * @method User[] newEntities(array $data, array $options = [])
+ * @method User get($primaryKey, $options = [])
+ * @method User findOrCreate($search, ?callable $callback = null, $options = [])
+ * @method User patchEntity(\Cake\Datasource\EntityInterface $entity, array $data, array $options = [])
+ * @method User[] patchEntities(iterable $entities, array $data, array $options = [])
+ * @method User|false save(\Cake\Datasource\EntityInterface $entity, $options = [])
+ * @method User saveOrFail(\Cake\Datasource\EntityInterface $entity, $options = [])
+ * @method User[]|\Cake\Datasource\ResultSetInterface|false saveMany(iterable $entities, $options = [])
+ * @method User[]|\Cake\Datasource\ResultSetInterface saveManyOrFail(iterable $entities, $options = [])
+ * @method User[]|\Cake\Datasource\ResultSetInterface|false deleteMany(iterable $entities, $options = [])
+ * @method User[]|\Cake\Datasource\ResultSetInterface deleteManyOrFail(iterable $entities, $options = [])
  *
  * @mixin \Cake\ORM\Behavior\TimestampBehavior
  */
@@ -129,6 +131,11 @@ class UsersTable extends Table
             ->boolean('active')
             ->allowEmptyString('active');
 
+        $validator
+            ->integer('code')
+            ->maxLength('code', 6)
+            ->allowEmptyString('code');
+
         return $validator;
     }
 
@@ -172,5 +179,35 @@ class UsersTable extends Table
             ->orderAsc('distance')
             ->bind(':latitude', $lat, 'float')
             ->bind(':longitude', $lng, 'float');
+    }
+
+    /**
+     * Generates 6 digits code for user
+     * to allow him change forgotten password
+     *
+     * @param int $userId
+     * @return int|false
+     * @throws Exception
+     */
+    public function generateCode(int $userId)
+    {
+        $user = $this->get($userId);
+        $user->code = random_int(100001, 999998);
+
+        return $this->save($user) ? $user->code : false;
+    }
+
+    /**
+     * Verifies code from user with code in database
+     *
+     * @param int $userId
+     * @param int $code
+     * @return bool
+     */
+    public function verifyCode(int $userId, int $code): bool
+    {
+        $user = $this->get($userId);
+
+        return (int)$user->code === $code;
     }
 }

@@ -18,7 +18,7 @@ class EncryptUtility
     private int $custom_chunk_size;
     private string $file_tmp_path;
     private string $file_enc_path;
-    private $key;
+    private string $key;
 
     /**
      * Utility Construct
