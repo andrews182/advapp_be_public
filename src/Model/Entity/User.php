@@ -27,6 +27,7 @@ use Cake\ORM\Query;
  * @property float|null $latitude
  * @property float|null $longitude
  * @property bool|null $active
+ * @property int|null $code
  * @property \Cake\I18n\FrozenTime $created
  * @property \Cake\I18n\FrozenTime|null $modified
  */
@@ -57,6 +58,7 @@ class User extends Entity
         'price' => true,
         'latitude' => true,
         'longitude' => true,
+        'code' => true,
         'active' => true,
         'created' => true,
         'modified' => true,
@@ -69,6 +71,7 @@ class User extends Entity
      */
     protected $_hidden = [
         'password',
+        'code'
     ];
 
     protected function _setPassword($password)

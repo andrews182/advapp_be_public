@@ -23,7 +23,7 @@ class UsersController extends AppController
     {
         parent::initialize();
 
-        $this->Auth->allow(['login', 'registration']);
+        $this->Auth->allow(['login', 'registration', 'forgotPassword']);
     }
 
     /**
@@ -80,7 +80,7 @@ class UsersController extends AppController
                         'id' => $user['id'],
                         'sub' => $user['id'],
                         'iat' => time(),
-                        'exp' =>  time() + 120,
+                        'exp' =>  time() + 86400,
                     ], $key);
                 }
 
@@ -126,13 +126,13 @@ class UsersController extends AppController
 
 
     /**
-     * Edit method
+     * Edit user
      *
-     * @param string|null $id User id.
+     * @param int|null $id User id.
      * @return void
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function edit(string $id = null)
+    public function edit(int $id = null)
     {
         $response = ['success' => false, 'msg' => "Invalid Request", 'errors' => ''];
         $user = $this->Users->get($id, [
@@ -154,13 +154,13 @@ class UsersController extends AppController
     }
 
     /**
-     * Delete method
+     * Delete user
      *
-     * @param string|null $id User id.
+     * @param int|null $id User id.
      * @return void
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
-    public function delete(string $id = null)
+    public function delete(int $id = null)
     {
         $response = ['success' => false, 'msg' => "Invalid Request", 'errors' => ''];
         $this->request->allowMethod(['post', 'delete']);
@@ -178,7 +178,7 @@ class UsersController extends AppController
     }
 
     /**
-     * Logout method
+     * Logout user
      *
      * @return void
      */
@@ -193,7 +193,13 @@ class UsersController extends AppController
         $this->viewBuilder()->setOption('serialize', ['success', 'msg', 'errors']);
     }
 
-    public function clear()
+    /**
+     * Temporary method that clears users table
+     * @TODO remove before goes live
+     *
+     * @return void
+     */
+    public function clear() //TODO remove in production
     {
         $response = ['success' => false, 'msg' => "Something went wrong", 'errors' => ''];
         $default_user = [
@@ -228,8 +234,76 @@ class UsersController extends AppController
             }
         }
 
-        extract($response);
         $this->set(compact('response'));
-        $this->viewBuilder()->setOption('serialize', ['success', 'msg', 'errors']);
+        $this->viewBuilder()->setOption('serialize', 'response');
+    }
+
+    /**
+     * Method for changing password for current logged in user
+     *
+     * @return void
+     */
+    public function changePassword()
+    {
+        $response = ['success' => false, 'msg' => "Something went wrong", 'errors' => ''];
+        $userId = $this->Auth->user('id');
+        $data = [
+            'password' => $this->request->getData('password')
+        ];
+
+        $user = $this->Users->get($userId);
+        $this->Users->patchEntity($user, $data);
+
+        if ($this->Users->save($user)) {
+            $response = ['success' => true, 'msg' => "Password changed", 'errors' => ''];
+        } else {
+            $response['errors'] = $user->getErrors();
+        }
+
+        $this->set(compact('response'));
+        $this->viewBuilder()->setOption('serialize', 'response');
+    }
+
+    /**
+     * Send user an email with generated code
+     * to allow him change his password in case he forgot it
+     *
+     * @param int|null $code
+     * @return void
+     * @throws \Exception
+     */
+    public function forgotPassword(int $code = null)
+    {
+        $response = ['success' => false, 'msg' => "Something went wrong", 'errors' => ''];
+        $newPassword = $this->request->getData('password');
+        $user = $this->Users->find()
+            ->where(['email' => $this->request->getData('email')])
+            ->firstOrFail();
+
+        if ($code === null) {
+            $generatedCode = $this->Users->generateCode($user->id);
+            if (is_numeric($generatedCode)) {
+                $this->sendEmailNotification('Password reset', 'forgot_password', $user, ['code' => $generatedCode]);
+                $response = ['success' => true, 'msg' => "Email sent to user", 'errors' => ''];
+            }
+        }
+
+        if ($code !== null && empty($newPassword)) {
+            if ($this->Users->verifyCode($user->id, $code)) {
+                $response = ['success' => true, 'msg' => "Code verified", 'errors' => ''];
+            }
+        }
+
+        if ($code !== null && !empty($newPassword) && $this->Users->verifyCode($user->id, $code)) {
+            $this->Users->patchEntity($user, ['password' => $newPassword, 'code' => null]);
+            $response = ['success' => true, 'msg' => "Password changed", 'errors' => ''];
+
+            if (!$this->Users->save($user)) {
+                $response = ['success' => false, 'msg' => "Password not changed", 'errors' => $user->getErrors()];
+            }
+        }
+
+        $this->set(compact('response'));
+        $this->viewBuilder()->setOption('serialize', 'response');
     }
 }
